@@ -12,7 +12,7 @@ from Proyecto.Modelos.Rentas import Rentas
 app = FastAPI()
 
 
-templates = Jinja2Templates(directory="templates")
+#templates = Jinja2Templates(directory="templates")
 
 
 app.mount("/static", StaticFiles(directory="Proyecto/static"), name="static")
@@ -25,23 +25,23 @@ class Libro(BaseModel):
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return #templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/libros", response_class=HTMLResponse)
 async def read_libros(request: Request):
-    return templates.TemplateResponse("libros.html", {"request": request})
+    return #templates.TemplateResponse("libros.html", {"request": request})
 
 @app.get("/rentas", response_class=HTMLResponse)
 async def read_rentas(request: Request):
-    return templates.TemplateResponse("rentas.html", {"request": request})
+    return #templates.TemplateResponse("rentas.html", {"request": request})
 
 @app.get("/miembros", response_class=HTMLResponse)
 async def read_miembros(request: Request):
-    return templates.TemplateResponse("miembros.html", {"request": request})
+    return #templates.TemplateResponse("miembros.html", {"request": request})
 
 @app.get("/empleados", response_class=HTMLResponse)
 async def read_empleados(request: Request):
-    return templates.TemplateResponse("empleados.html", {"request": request})
+    return #templates.TemplateResponse("empleados.html", {"request": request})
 
 #Formulario de Libros
 @app.get("/api/libros", response_class=JSONResponse)
@@ -221,26 +221,25 @@ async def manage_Miembros(
 
 
 # Formulario De Rentas
-@app.get("/api/Rentas", response_class=JSONResponse)
+@app.get("/api/rentas", response_class=JSONResponse)
 async def get_rentas():
     try:
         mydb = conectarbd()
         mycursor = mydb.cursor()
         mycursor.execute("USE Biblioteca")
-        mycursor.execute("SELECT id, fecha_inicio, fecha_devolucion, id_cliente, id_libro FROM Rentas")
+        mycursor.execute("SELECT id, fechainicio, fechadevolucion, id_cliente, id_libro FROM Rentas")
         Rentas = mycursor.fetchall()
 
-
         Rentas_list = [
-            {"id": Renta[0], "fecha_inicio": Renta[1], "fecha_devolucion": Renta[2], "id_cliente": Renta[3],  "id_libro": Renta[4]}
+            {"id": Renta[0], "fechainicio": Renta[1], "fechadevolucion": Renta[2], "id_cliente": Renta[3],  "id_libro": Renta[4]}
             for Renta in Rentas
         ]
 
         return {"Rentas": Rentas_list}
 
     except Exception as e:
-        print(f"Exception: {e}")  # Print the exception to the console
-        return JSONResponse(content={"error": "Ocurrio un error"}, status_code=500)
+        print(f"Exception: {e}")  # Print the exception details
+        return JSONResponse(content={"error": f"Ocurrió un error: {str(e)}"}, status_code=500)
 
     finally:
         if mycursor is not None:
@@ -248,12 +247,13 @@ async def get_rentas():
         if mydb is not None:
             mydb.close()
 
+
 @app.post("/Rentas")
 async def manage_Rentas(
         action: str = Form(...),
         id: int = Form(None),
-        fecha_inicio: str = Form(None),
-        fecha_devolucion: str = Form(None),
+        fechainicio: str = Form(None),
+        fechadevolucion: str = Form(None),
         id_cliente: int = Form(None),
         id_libro: int = Form(None),
 ):
@@ -265,21 +265,26 @@ async def manage_Rentas(
         if action == "add_modify":
             if id:
                 mycursor.execute(
-                    "UPDATE Rentas SET fecha_inicio = %s, fecha_devoulucion = %s,  id_cliente = %s,  id_libro = %s WHERE id = %s",
-                    (fecha_inicio, fecha_devolucion, id_cliente, id_libro, id)
+                    "UPDATE Rentas SET fechainicio = %s, fechadevolucion = %s, id_cliente = %s, id_libro = %s WHERE id = %s",
+                    (fechainicio, fechadevolucion, id_cliente, id_libro, id)
                 )
+                message = "Renta actualizada con éxito"
             else:
-
                 mycursor.execute(
-                    "INSERT INTO Rentas (apellido_nombre, direccion, telefono) VALUES (%s, %s, %s, %s)",
-                    (fecha_inicio, fecha_devolucion, id_cliente, id_libro)
+                    "INSERT INTO Rentas (fechainicio, fechadevolucion, id_cliente, id_libro) VALUES (%s, %s, %s, %s)",
+                    (fechainicio, fechadevolucion, id_cliente, id_libro)
                 )
+                message = "Renta añadida con éxito"
 
         elif action == "delete":
+            if not id:
+                return JSONResponse(content={"error": "ID es requerido para borrar"}, status_code=400)
+
             mycursor.execute("DELETE FROM Rentas WHERE id = %s", (id,))
+            message = "Renta eliminada con éxito"
 
         mydb.commit()
-        return JSONResponse(content={"message": "Exito"}, status_code=200)
+        return JSONResponse(content={"message": message}, status_code=200)
 
     except Exception as e:
         print(f"Exception: {e}")
@@ -288,9 +293,6 @@ async def manage_Rentas(
     finally:
         mycursor.close()
         mydb.close()
-
-
-
 
 
 def init_db():
