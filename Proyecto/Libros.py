@@ -23,25 +23,6 @@ class Libro(BaseModel):
     nombre: str = None
     disponibilidad: bool = None
 
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    return #templates.TemplateResponse("index.html", {"request": request})
-
-@app.get("/libros", response_class=HTMLResponse)
-async def read_libros(request: Request):
-    return #templates.TemplateResponse("libros.html", {"request": request})
-
-@app.get("/rentas", response_class=HTMLResponse)
-async def read_rentas(request: Request):
-    return #templates.TemplateResponse("rentas.html", {"request": request})
-
-@app.get("/miembros", response_class=HTMLResponse)
-async def read_miembros(request: Request):
-    return #templates.TemplateResponse("miembros.html", {"request": request})
-
-@app.get("/empleados", response_class=HTMLResponse)
-async def read_empleados(request: Request):
-    return #templates.TemplateResponse("empleados.html", {"request": request})
 
 #Formulario de Libros
 @app.get("/api/libros", response_class=JSONResponse)
