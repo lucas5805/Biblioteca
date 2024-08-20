@@ -192,7 +192,7 @@ async def manage_Miembros(
         return JSONResponse(content={"message": "Exito"}, status_code=200)
 
     except Exception as e:
-        print(f"Exception: {e}")  # Print the exception to the console
+        print(f"Exception: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
     finally:
