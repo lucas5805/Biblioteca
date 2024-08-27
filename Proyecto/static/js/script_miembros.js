@@ -1,6 +1,6 @@
 async function loadMiembros() {
     try {
-        const response = await fetch('/api/Miembros', {
+        const response = await fetch('/api/miembros', {
             headers: {
                 'Accept': 'application/json',
             }
@@ -61,7 +61,7 @@ async function manageMiembros(action) {
     }
 
     try {
-        const response = await fetch('/Miembros', {
+        const response = await fetch('/miembros', {
             method: 'POST',
             body: formData
         });
