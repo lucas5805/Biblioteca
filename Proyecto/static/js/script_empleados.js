@@ -1,6 +1,6 @@
 async function loadempleados() {
     try {
-        const response = await fetch('/api/Empleados', {
+        const response = await fetch('/api/empleados', {  // Use lowercase 'empleados'
             headers: {
                 'Accept': 'application/json',
             }
@@ -11,7 +11,7 @@ async function loadempleados() {
         }
 
         const data = await response.json();
-        console.log('datos recividos:', data);
+        console.log('datos recibidos:', data);
 
         if (!data.Empleados || !data.Empleados.length) {
             console.error('No data found or empty array returned');
@@ -48,6 +48,7 @@ window.onload = function() {
 };
 
 
+
 async function manageempleados(action) {
     const formData = new FormData();
 
@@ -55,7 +56,7 @@ async function manageempleados(action) {
         formData.append("action", "add_modify");
         formData.append("id", document.getElementById("id").value);
         formData.append("apellido_nombre", document.getElementById("apellido_nombre").value);
-        formData.append("direccion", document.getElementById("direccion").value);  // Ensure the ID matches
+        formData.append("direccion", document.getElementById("direccion").value);
         formData.append("telefono", document.getElementById("telefono").value);
         formData.append("dias", document.getElementById("dias").value);
         formData.append("horarios", document.getElementById("horarios").value);
@@ -65,7 +66,7 @@ async function manageempleados(action) {
     }
 
     try {
-        const response = await fetch('/Empleados', {
+        const response = await fetch('/empleados', {  // Use lowercase 'empleados'
             method: 'POST',
             body: formData
         });
@@ -83,4 +84,5 @@ async function manageempleados(action) {
         console.error('Error en el manejo de empleado:', error);
     }
 }
+
 

@@ -17,6 +17,7 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="Proyecto/static"), name="static")
 
+#Peticiones/formato
 class Libro(BaseModel):
     action: str
     id: int = None
@@ -25,43 +26,50 @@ class Libro(BaseModel):
 
 
 #Formulario de Libros
+from fastapi.responses import JSONResponse
+
 @app.get("/api/libros", response_class=JSONResponse)
 async def get_libros():
-    mydb = conectarbd()
-    mycursor = mydb.cursor()
-    mycursor.execute("USE Biblioteca")
-    mycursor.execute("SELECT id, nombre, disponibilidad FROM libros")
-    libros = mycursor.fetchall()
-    mycursor.close()
-    mydb.close()
+    try:
+        mydb = conectarbd()
+        mycursor = mydb.cursor()
+        mycursor.execute("USE Biblioteca")
+        mycursor.execute("SELECT id, nombre, disponibilidad FROM libros")
+        libros = mycursor.fetchall()
 
-    libros_list = [{"id": libro[0], "nombre": libro[1], "disponibilidad": libro[2]} for libro in libros]
-    return {"libros": libros_list}
+        libros_list = [{"id": libro[0], "nombre": libro[1], "disponibilidad": libro[2]} for libro in libros]
+        return {"libros": libros_list}
+
+    except Exception as e:
+        print(f"Exception: {e}")
+        return JSONResponse(content={"error": "No se pudo cargar, compruebe la conexión"}, status_code=400)
+
+    finally:
+        if mycursor is not None:
+            mycursor.close()
+        if mydb is not None:
+            mydb.close()
+
 
 @app.post("/libros")
-async def manage_libros(
-        action: str = Form(...),
-        id: int = Form(None),
-        nombre: str = Form(None),
-        disponibilidad: bool = Form(None)
-):
+async def manage_libros(libro: Libro):
     try:
         mydb = conectarbd()
         mycursor = mydb.cursor()
         mycursor.execute("USE Biblioteca")
 
-        if action == "add_modify":
-            if id:
+        if libro.action == "add_modify":
+            if libro.id:
                 mycursor.execute(
                     "UPDATE libros SET nombre = %s, disponibilidad = %s WHERE id = %s",
-                    (nombre, disponibilidad, id)
+                    (libro.nombre, libro.disponibilidad, libro.id)
                 )
             else:
-                nuevo_libro = Libros(nombre, disponibilidad)
+                nuevo_libro = Libros(libro.nombre, libro.disponibilidad)
                 nuevo_libro.insert()
-        elif action == "delete":
-            print(f"Borrando: {id}")  # Debugging line
-            mycursor.execute("DELETE FROM libros WHERE id = %s", (id,))
+        elif libro.action == "delete":
+            print(f"Borrando: {libro.id}")  # Debugging line
+            mycursor.execute("DELETE FROM libros WHERE id = %s", (libro.id,))
 
         mydb.commit()
         mycursor.close()
@@ -70,8 +78,9 @@ async def manage_libros(
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
+
 # Formulario De Empleados
-@app.get("/api/Empleados", response_class=JSONResponse)
+@app.get("/api/empleados", response_class=JSONResponse)
 async def get_empleados():
     try:
         mydb = conectarbd()
@@ -80,47 +89,63 @@ async def get_empleados():
         mycursor.execute("SELECT id, apellido_nombre, direccion, Telefono, Dias, Horarios FROM empleados")
         Empleados = mycursor.fetchall()
 
-        empleados_list = [{"id": Empleado[0], "apellido_nombre": Empleado[1], "direccion": Empleado[2], "Telefono": Empleado[3], "Dias": Empleado[4], "Horarios": Empleado[5]} for Empleado in Empleados]
+        empleados_list = [
+            {"id": Empleado[0], "apellido_nombre": Empleado[1], "direccion": Empleado[2], "Telefono": Empleado[3], "Dias": Empleado[4], "Horarios": Empleado[5]}
+            for Empleado in Empleados
+        ]
 
         return {"Empleados": empleados_list}
 
-    finally:
-        mycursor.close()
-        mydb.close()
+    except Exception as e:
+        print(f"Exception: {e}")
+        return JSONResponse(content={"error": "No se pudo cargar, compruebe la conexión"}, status_code=400)
 
-@app.post("/Empleados")
-async def manage_Empleados(
-        action: str = Form(...),
-        id: int = Form(None),
-        apellido_nombre: str = Form(None),
-        direccion: str = Form(None),
-        telefono: str = Form(None),
-        dias: str = Form(None),
-        horarios: str = Form(None),
-):
+    finally:
+        if mycursor is not None:
+            mycursor.close()
+        if mydb is not None:
+            mydb.close()
+
+
+class EmpleadoRequest(BaseModel):
+    action: str
+    id: int = None
+    apellido_nombre: str = None
+    direccion: str = None
+    telefono: str = None
+    Dias: str = None
+    Horarios: str = None
+
+@app.post("/empleados")
+async def manage_Empleados(request: EmpleadoRequest):
     try:
         mydb = conectarbd()
         mycursor = mydb.cursor()
         mycursor.execute("USE Biblioteca")
 
-        if action == "add_modify":
-            if id:
+        if request.action == "add_modify":
+            if request.id:
                 mycursor.execute(
-                    "UPDATE empleados SET apellido_nombre = %s, direccion = %s, telefono = %s, dias = %s, horarios = %s WHERE id = %s",
-                    (apellido_nombre, direccion, telefono, dias, horarios, id)
+                    "UPDATE empleados SET apellido_nombre = %s, direccion = %s, telefono = %s, Dias = %s, horarios = %s WHERE id = %s",
+                    (request.apellido_nombre, request.direccion, request.telefono, request.Dias, request.Horarios, request.id)
                 )
+                message = "Empleado actualizado con éxito"
             else:
-
                 mycursor.execute(
-                    "INSERT INTO empleados (apellido_nombre, direccion, telefono, dias, horarios) VALUES (%s, %s, %s, %s, %s)",
-                    (apellido_nombre, direccion, telefono, dias, horarios)
+                    "INSERT INTO empleados (apellido_nombre, direccion, telefono, Dias, Horarios) VALUES (%s, %s, %s, %s, %s)",
+                    (request.apellido_nombre, request.direccion, request.telefono, request.Dias, request.Horarios)
                 )
+                message = "Empleado añadido con éxito"
 
-        elif action == "delete":
-            mycursor.execute("DELETE FROM empleados WHERE id = %s", (id,))
+        elif request.action == "delete":
+            if not request.id:
+                return JSONResponse(content={"error": "ID es requerido para borrar"}, status_code=400)
+
+            mycursor.execute("DELETE FROM empleados WHERE id = %s", (request.id,))
+            message = "Empleado eliminado con éxito"
 
         mydb.commit()
-        return JSONResponse(content={"message": "Exito"}, status_code=200)
+        return JSONResponse(content={"message": message}, status_code=200)
 
     except Exception as e:
         print(f"Exception: {e}")
@@ -132,7 +157,7 @@ async def manage_Empleados(
 
 
 # Formulario De Miembros
-@app.get("/api/Miembros", response_class=JSONResponse)
+@app.get("/api/miembros", response_class=JSONResponse)
 async def get_miembros():
     try:
         mydb = conectarbd()
@@ -151,7 +176,7 @@ async def get_miembros():
 
     except Exception as e:
         print(f"Exception: {e}")
-        return JSONResponse(content={"error": "Ocurrio un error"}, status_code=500)
+        return JSONResponse(content={"error": "No se pudo cargar, compruebe la conexion"}, status_code=400)
 
     finally:
         if mycursor is not None:
@@ -159,45 +184,51 @@ async def get_miembros():
         if mydb is not None:
             mydb.close()
 
-@app.post("/Miembros")
-async def manage_Miembros(
-        action: str = Form(...),
-        id: int = Form(None),
-        apellido_nombre: str = Form(None),
-        direccion: str = Form(None),
-        telefono: str = Form(None),
-):
+#Peticion/formato
+class MiembroRequest(BaseModel):
+    action: str
+    id: int = None
+    apellido_nombre: str = None
+    direccion: str = None
+    telefono: str = None
+
+@app.post("/miembros")
+async def manage_Miembros(request: MiembroRequest):
     try:
         mydb = conectarbd()
         mycursor = mydb.cursor()
         mycursor.execute("USE Biblioteca")
 
-        if action == "add_modify":
-            if id:
+        if request.action == "add_modify":
+            if request.id:
                 mycursor.execute(
-                    "UPDATE Miembros SET apellido_nombre = %s, direccion = %s,  Telefono = %s WHERE id = %s",
-                    (apellido_nombre, direccion, telefono, id)
+                    "UPDATE Miembros SET apellido_nombre = %s, direccion = %s, telefono = %s WHERE id = %s",
+                    (request.apellido_nombre, request.direccion, request.telefono, request.id)
                 )
             else:
-                # Insert new employee
                 mycursor.execute(
                     "INSERT INTO Miembros (apellido_nombre, direccion, telefono) VALUES (%s, %s, %s)",
-                    (apellido_nombre, direccion, telefono)
+                    (request.apellido_nombre, request.direccion, request.telefono)
                 )
+            message = "Miembro añadido con éxito"
 
-        elif action == "delete":
-            mycursor.execute("DELETE FROM Miembros WHERE id = %s", (id,))
+        elif request.action == "delete":
+            if not request.id:
+                return JSONResponse(content={"error": "ID es requerido para borrar"}, status_code=400)
+
+            mycursor.execute("DELETE FROM Miembros WHERE id = %s", (request.id,))
+            message = "Miembro eliminado con éxito"
 
         mydb.commit()
-        return JSONResponse(content={"message": "Exito"}, status_code=200)
+        return JSONResponse(content={"message": message}, status_code=200)
 
     except Exception as e:
-        print(f"Exception: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
     finally:
         mycursor.close()
         mydb.close()
+
 
 
 
@@ -220,7 +251,7 @@ async def get_rentas():
 
     except Exception as e:
         print(f"Exception: {e}")  # Print the exception details
-        return JSONResponse(content={"error": f"Ocurrió un error: {str(e)}"}, status_code=500)
+        return JSONResponse(content={"error": "No se pudo cargar, compruebe la conexion"}, status_code=400)
 
     finally:
         if mycursor is not None:
@@ -229,39 +260,41 @@ async def get_rentas():
             mydb.close()
 
 
-@app.post("/Rentas")
-async def manage_Rentas(
-        action: str = Form(...),
-        id: int = Form(None),
-        fechainicio: str = Form(None),
-        fechadevolucion: str = Form(None),
-        id_cliente: int = Form(None),
-        id_libro: int = Form(None),
-):
+#Peticion/formato
+class RentaRequest(BaseModel):
+    action: str
+    id: int = None
+    fechainicio: str = None
+    fechadevolucion: str = None
+    id_cliente: int = None
+    id_libro: int = None
+
+@app.post("/rentas")
+async def manage_Rentas(request: RentaRequest):
     try:
         mydb = conectarbd()
         mycursor = mydb.cursor()
         mycursor.execute("USE Biblioteca")
 
-        if action == "add_modify":
-            if id:
+        if request.action == "add_modify":
+            if request.id:
                 mycursor.execute(
                     "UPDATE Rentas SET fechainicio = %s, fechadevolucion = %s, id_cliente = %s, id_libro = %s WHERE id = %s",
-                    (fechainicio, fechadevolucion, id_cliente, id_libro, id)
+                    (request.fechainicio, request.fechadevolucion, request.id_cliente, request.id_libro, request.id)
                 )
                 message = "Renta actualizada con éxito"
             else:
                 mycursor.execute(
                     "INSERT INTO Rentas (fechainicio, fechadevolucion, id_cliente, id_libro) VALUES (%s, %s, %s, %s)",
-                    (fechainicio, fechadevolucion, id_cliente, id_libro)
+                    (request.fechainicio, request.fechadevolucion, request.id_cliente, request.id_libro)
                 )
                 message = "Renta añadida con éxito"
 
-        elif action == "delete":
-            if not id:
+        elif request.action == "delete":
+            if not request.id:
                 return JSONResponse(content={"error": "ID es requerido para borrar"}, status_code=400)
 
-            mycursor.execute("DELETE FROM Rentas WHERE id = %s", (id,))
+            mycursor.execute("DELETE FROM Rentas WHERE id = %s", (request.id,))
             message = "Renta eliminada con éxito"
 
         mydb.commit()
