@@ -321,6 +321,42 @@ def init_db():
             disponibilidad BOOLEAN
         )
     """)
+
+    # Crear tabla de Empleados
+    mycursor.execute("""
+        CREATE TABLE IF NOT EXISTS empleados (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            apellido_nombre VARCHAR(255),
+            direccion VARCHAR(255),
+            telefono VARCHAR(20),
+            Dias VARCHAR(50),
+            Horarios VARCHAR(20)
+        )
+    """)
+
+    # Crear tabla de Miembros
+    mycursor.execute("""
+        CREATE TABLE IF NOT EXISTS miembros (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            apellido_nombre VARCHAR(255),
+            direccion VARCHAR(255),
+            telefono VARCHAR(20)
+        )
+    """)
+
+    # Crear tabla de Rentas
+    mycursor.execute("""
+        CREATE TABLE IF NOT EXISTS rentas (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            fechainicio DATE,
+            fechadevolucion DATE,
+            id_cliente INT,
+            id_libro INT,
+            FOREIGN KEY (id_cliente) REFERENCES miembros(id),
+            FOREIGN KEY (id_libro) REFERENCES libros(id)
+        )
+    """)
+
     mycursor.close()
     mydb.close()
 
