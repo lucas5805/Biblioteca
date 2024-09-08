@@ -1,13 +1,9 @@
-from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from Proyecto.BasedeDatos import conectarbd
-from Proyecto.Modelos.Libros import Libros
-from Proyecto.Modelos.Empleados import Empleados
-from Proyecto.Modelos.Miembros import Miembros
-from Proyecto.Modelos.Rentas import Rentas
 
 app = FastAPI()
 
@@ -15,7 +11,14 @@ app = FastAPI()
 #templates = Jinja2Templates(directory="templates")
 
 
-app.mount("/static", StaticFiles(directory="Proyecto/static"), name="static")
+#app.mount("/static", StaticFiles(directory="Proyecto/static"), name="static")
+
+
+
+
+########################################################################################
+################################# Libros ###############################################
+########################################################################################
 
 #Peticiones/formato
 class Libro(BaseModel):
@@ -23,12 +26,7 @@ class Libro(BaseModel):
     id: int = None
     nombre: str = None
     disponibilidad: bool = None
-
-
-#Formulario de Libros
-from fastapi.responses import JSONResponse
-
-@app.get("/api/libros", response_class=JSONResponse)
+@app.get("/api/libros", response_class=PlainTextResponse)
 async def get_libros():
     try:
         mydb = conectarbd()
@@ -37,19 +35,25 @@ async def get_libros():
         mycursor.execute("SELECT id, nombre, disponibilidad FROM libros")
         libros = mycursor.fetchall()
 
-        libros_list = [{"id": libro[0], "nombre": libro[1], "disponibilidad": libro[2]} for libro in libros]
-        return {"libros": libros_list}
+        # Le da un formato de lista a la columna
+        libros_list = [
+            f"ID: {libro[0]}, Nombre: {libro[1]}, Disponibilidad: {'Sí' if libro[2] else 'No'}"
+            for libro in libros
+        ]
+
+        # une las columnas y les da formato
+        libros_text = "\n".join(libros_list)
+        return libros_text
 
     except Exception as e:
         print(f"Exception: {e}")
-        return JSONResponse(content={"error": "No se pudo cargar, compruebe la conexión"}, status_code=400)
+        return PlainTextResponse("No se pudo cargar, compruebe la conexión", status_code=400)
 
     finally:
         if mycursor is not None:
             mycursor.close()
         if mydb is not None:
             mydb.close()
-
 
 @app.post("/libros")
 async def manage_libros(libro: Libro):
@@ -65,40 +69,77 @@ async def manage_libros(libro: Libro):
                     (libro.nombre, libro.disponibilidad, libro.id)
                 )
             else:
-                nuevo_libro = Libros(libro.nombre, libro.disponibilidad)
-                nuevo_libro.insert()
-        elif libro.action == "delete":
-            print(f"Borrando: {libro.id}")  # Debugging line
-            mycursor.execute("DELETE FROM libros WHERE id = %s", (libro.id,))
+                # Insertar un nuevo libro y capturar la ID generada
+                mycursor.execute(
+                    "INSERT INTO libros (nombre, disponibilidad) VALUES (%s, %s)",
+                    (libro.nombre, libro.disponibilidad)
+                )
+                new_id = mycursor.lastrowid  # Captura la nueva ID
 
         mydb.commit()
         mycursor.close()
         mydb.close()
-        return JSONResponse(content={"message": "Exito"}, status_code=200)
+
+        # Retorna la ID en caso de inserción de un nuevo libro
+        if libro.action == "add_modify" and not libro.id:
+            return PlainTextResponse(f"Éxito, el libro insertado ahora tiene la siguiente ID: {new_id}", status_code=200)
+
+        return PlainTextResponse("Éxito", status_code=200)
+
     except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        return PlainTextResponse(f"Error: {str(e)}", status_code=500)
 
 
-# Formulario De Empleados
-@app.get("/api/empleados", response_class=JSONResponse)
-async def get_empleados():
+
+@app.delete("/libros/{libro_id}", response_class=PlainTextResponse)
+async def delete_libro(libro_id: int):
     try:
         mydb = conectarbd()
         mycursor = mydb.cursor()
         mycursor.execute("USE Biblioteca")
-        mycursor.execute("SELECT id, apellido_nombre, direccion, Telefono, Dias, Horarios FROM empleados")
-        Empleados = mycursor.fetchall()
 
-        empleados_list = [
-            {"id": Empleado[0], "apellido_nombre": Empleado[1], "direccion": Empleado[2], "Telefono": Empleado[3], "Dias": Empleado[4], "Horarios": Empleado[5]}
-            for Empleado in Empleados
-        ]
+        # Ejecuta la eliminación del libro por ID
+        mycursor.execute("DELETE FROM libros WHERE id = %s", (libro_id,))
 
-        return {"Empleados": empleados_list}
+        # Verifica si se eliminó algún registro
+        if mycursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Libro no encontrado")
+
+        mydb.commit()
+        return PlainTextResponse("Libro eliminado con éxito", status_code=200)
+
+    except HTTPException as e:
+        return PlainTextResponse(e.detail, status_code=e.status_code)
 
     except Exception as e:
-        print(f"Exception: {e}")
-        return JSONResponse(content={"error": "No se pudo cargar, compruebe la conexión"}, status_code=400)
+        return PlainTextResponse(f"Error: {str(e)}", status_code=500)
+
+
+#Buscar
+@app.get("/libros/{libro_id}", response_class=PlainTextResponse)
+async def get_libro_by_id(libro_id: int):
+    try:
+        mydb = conectarbd()
+        mycursor = mydb.cursor()
+        mycursor.execute("USE Biblioteca")
+
+        # Consulta para obtener el libro por ID
+        mycursor.execute("SELECT id, nombre, disponibilidad FROM libros WHERE id = %s", (libro_id,))
+        libro = mycursor.fetchone()
+
+        # Verifica si se encontró el libro
+        if not libro:
+            raise HTTPException(status_code=404, detail="Libro no encontrado")
+
+        # Formatea la información del libro
+        libro_info = f"ID: {libro[0]}, Nombre: {libro[1]}, Disponibilidad: {'Sí' if libro[2] else 'No'}"
+        return PlainTextResponse(libro_info, status_code=200)
+
+    except HTTPException as e:
+        return PlainTextResponse(e.detail, status_code=e.status_code)
+
+    except Exception as e:
+        return PlainTextResponse(f"Error: {str(e)}", status_code=500)
 
     finally:
         if mycursor is not None:
@@ -106,6 +147,10 @@ async def get_empleados():
         if mydb is not None:
             mydb.close()
 
+
+########################################################################################
+################################# Empleados #############################################
+########################################################################################
 
 class EmpleadoRequest(BaseModel):
     action: str
@@ -115,6 +160,36 @@ class EmpleadoRequest(BaseModel):
     telefono: str = None
     Dias: str = None
     Horarios: str = None
+
+
+@app.get("/api/empleados", response_class=PlainTextResponse)
+async def get_empleados():
+    try:
+        mydb = conectarbd()
+        mycursor = mydb.cursor()
+        mycursor.execute("USE Biblioteca")
+        mycursor.execute("SELECT id, apellido_nombre, direccion, Telefono, Dias, Horarios FROM empleados")
+        empleados = mycursor.fetchall()
+
+        empleados_list = [
+            f"id: {empleado[0]}, apellido_nombre: {empleado[1]},direccion: {empleado[2]}, Telefono: {empleado[3]},Dias: {empleado[4]}, Horarios: {empleado[5]}, "
+            for empleado in empleados
+        ]
+
+        emp_text = "\n".join(empleados_list)
+        return emp_text
+
+    except Exception as e:
+        print(f"Exception: {e}")
+        return PlainTextResponse("No se pudo cargar, compruebe la conexión", status_code=400)
+
+    finally:
+        if mycursor is not None:
+            mycursor.close()
+        if mydb is not None:
+            mydb.close()
+
+
 
 @app.post("/empleados")
 async def manage_Empleados(request: EmpleadoRequest):
@@ -137,27 +212,79 @@ async def manage_Empleados(request: EmpleadoRequest):
                 )
                 message = "Empleado añadido con éxito"
 
-        elif request.action == "delete":
-            if not request.id:
-                return JSONResponse(content={"error": "ID es requerido para borrar"}, status_code=400)
-
-            mycursor.execute("DELETE FROM empleados WHERE id = %s", (request.id,))
-            message = "Empleado eliminado con éxito"
-
         mydb.commit()
-        return JSONResponse(content={"message": message}, status_code=200)
+        return PlainTextResponse(message, status_code=200)
 
     except Exception as e:
         print(f"Exception: {e}")
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        return PlainTextResponse(f"Error: {str(e)}", status_code=500)
+
 
     finally:
         mycursor.close()
         mydb.close()
 
 
-# Formulario De Miembros
-@app.get("/api/miembros", response_class=JSONResponse)
+@app.delete("/empleados/{empleado_id}", response_class=PlainTextResponse)
+async def deleteemp(empleado_id: int):
+    try:
+        mydb = conectarbd()
+        mycursor = mydb.cursor()
+        mycursor.execute("USE Biblioteca")
+
+        # Ejecuta la eliminación del empleado por ID
+        mycursor.execute("DELETE FROM empleados WHERE id = %s", (empleado_id,))
+
+        # Verifica si se eliminó algún registro
+        if mycursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Empleado no encontrado")
+
+        mydb.commit()
+        return PlainTextResponse("Empleado eliminado con éxito", status_code=200)
+
+    except HTTPException as e:
+        return PlainTextResponse(e.detail, status_code=e.status_code)
+
+    except Exception as e:
+        return PlainTextResponse(f"Error: {str(e)}", status_code=500)
+
+
+@app.get("/empleados/{empleado_id}", response_class=PlainTextResponse)
+async def get_empleado_by_id(empleado_id: int):
+    try:
+        mydb = conectarbd()
+        mycursor = mydb.cursor()
+        mycursor.execute("USE Biblioteca")
+
+        # Consulta para obtener el empleado por ID
+        mycursor.execute("SELECT id, apellido_nombre, direccion, telefono, Dias, Horarios FROM empleados WHERE id = %s", (empleado_id,))
+        empleado = mycursor.fetchone()
+
+        # Verifica si se encontró el empleado
+        if not empleado:
+            raise HTTPException(status_code=404, detail="Empleado no encontrado")
+
+        # Formatea la información del empleado
+        empleado_info = (
+            f"ID: {empleado[0]}, Apellido_Nombre: {empleado[1]}, Direccion: {empleado[2]}, "
+            f"Telefono: {empleado[3]}, Dias: {empleado[4]}, Horarios: {empleado[5]}"
+        )
+        return PlainTextResponse(empleado_info, status_code=200)
+
+    except HTTPException as e:
+        return PlainTextResponse(e.detail, status_code=e.status_code)
+
+    except Exception as e:
+        return PlainTextResponse(f"Error: {str(e)}", status_code=500)
+
+    finally:
+        mycursor.close()
+        mydb.close()
+
+########################################################################################
+################################# Miembros #############################################
+########################################################################################
+@app.get("/api/miembros", response_class=PlainTextResponse)
 async def get_miembros():
     try:
         mydb = conectarbd()
@@ -166,23 +293,25 @@ async def get_miembros():
         mycursor.execute("SELECT id, apellido_nombre, direccion, telefono FROM Miembros")
         Miembros = mycursor.fetchall()
 
-
-        Miembros_list = [
-            {"id": Miembro[0], "apellido_nombre": Miembro[1], "direccion": Miembro[2], "telefono": Miembro[3]}
-            for Miembro in Miembros
+        miembros_list = [
+            f"id: {miembro[0]}, apellido_nombre: {miembro[1]},direccion: {miembro[2]}, Telefono: {miembro[3]} "
+            for miembro in Miembros
         ]
 
-        return {"Miembros": Miembros_list}
+        miem_text = "\n".join(miembros_list)
+        return miem_text
 
     except Exception as e:
         print(f"Exception: {e}")
-        return JSONResponse(content={"error": "No se pudo cargar, compruebe la conexion"}, status_code=400)
+        return PlainTextResponse("No se pudo cargar, compruebe la conexión", status_code=400)
 
     finally:
         if mycursor is not None:
             mycursor.close()
         if mydb is not None:
             mydb.close()
+
+
 
 #Peticion/formato
 class MiembroRequest(BaseModel):
@@ -210,7 +339,7 @@ async def manage_Miembros(request: MiembroRequest):
                     "INSERT INTO Miembros (apellido_nombre, direccion, telefono) VALUES (%s, %s, %s)",
                     (request.apellido_nombre, request.direccion, request.telefono)
                 )
-            message = "Miembro añadido con éxito"
+            message = "Miembro añadido/modificado con éxito"
 
         elif request.action == "delete":
             if not request.id:
@@ -230,10 +359,63 @@ async def manage_Miembros(request: MiembroRequest):
         mydb.close()
 
 
+@app.delete("/miembros/{miembro_id}", response_class=PlainTextResponse)
+async def deleteemp(miembro_id: int):
+    try:
+        mydb = conectarbd()
+        mycursor = mydb.cursor()
+        mycursor.execute("USE Biblioteca")
+
+        # Ejecuta la eliminación del miembro por ID
+        mycursor.execute("DELETE FROM miembros WHERE id = %s", (miembro_id,))
+
+        # Verifica si se eliminó algún registro
+        if mycursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Miembro no encontrado")
+
+        mydb.commit()
+        return PlainTextResponse("Miembro eliminado con éxito", status_code=200)
+
+    except HTTPException as e:
+        return PlainTextResponse(e.detail, status_code=e.status_code)
+
+    except Exception as e:
+        return PlainTextResponse(f"Error: {str(e)}", status_code=500)
 
 
-# Formulario De Rentas
-@app.get("/api/rentas", response_class=JSONResponse)
+@app.get("/miembros/{miembro_id}", response_class=PlainTextResponse)
+async def get_miembro_by_id(miembro_id: int):
+    try:
+        mydb = conectarbd()
+        mycursor = mydb.cursor()
+        mycursor.execute("USE Biblioteca")
+
+        mycursor.execute("SELECT id, apellido_nombre, direccion, telefono FROM miembros WHERE id = %s", (miembro_id,))
+        miembro = mycursor.fetchone()
+
+        if not miembro:
+            raise HTTPException(status_code=404, detail="Miembro no encontrado")
+
+
+        miembro_info = (
+            f"id: {miembro[0]}, apellido_Nombre: {miembro[1]}, direccion: {miembro[2]}, telefono: {miembro[3]}"
+        )
+        return PlainTextResponse(miembro_info, status_code=200)
+
+    except HTTPException as e:
+        return PlainTextResponse(e.detail, status_code=e.status_code)
+
+    except Exception as e:
+        return PlainTextResponse(f"Error: {str(e)}", status_code=500)
+
+    finally:
+        mycursor.close()
+        mydb.close()
+
+########################################################################################
+################################# Rentas ###############################################
+########################################################################################
+@app.get("/api/rentas", response_class=PlainTextResponse)
 async def get_rentas():
     try:
         mydb = conectarbd()
@@ -242,22 +424,24 @@ async def get_rentas():
         mycursor.execute("SELECT id, fechainicio, fechadevolucion, id_cliente, id_libro FROM Rentas")
         Rentas = mycursor.fetchall()
 
-        Rentas_list = [
-            {"id": Renta[0], "fechainicio": Renta[1], "fechadevolucion": Renta[2], "id_cliente": Renta[3],  "id_libro": Renta[4]}
-            for Renta in Rentas
+        rentas_list = [
+            f"id: {renta[0]}, fechainicio: {renta[1]},fechadevolucion: {renta[2]}, id_cliente: {renta[3]},id_libro: {renta[4]}"
+            for renta in Rentas
         ]
 
-        return {"Rentas": Rentas_list}
+        ren_text = "\n".join(rentas_list)
+        return ren_text
 
     except Exception as e:
-        print(f"Exception: {e}")  # Print the exception details
-        return JSONResponse(content={"error": "No se pudo cargar, compruebe la conexion"}, status_code=400)
+        print(f"Exception: {e}")
+        return PlainTextResponse("No se pudo cargar, compruebe la conexión", status_code=400)
 
     finally:
         if mycursor is not None:
             mycursor.close()
         if mydb is not None:
             mydb.close()
+
 
 
 #Peticion/formato
@@ -288,7 +472,7 @@ async def manage_Rentas(request: RentaRequest):
                     "INSERT INTO Rentas (fechainicio, fechadevolucion, id_cliente, id_libro) VALUES (%s, %s, %s, %s)",
                     (request.fechainicio, request.fechadevolucion, request.id_cliente, request.id_libro)
                 )
-                message = "Renta añadida con éxito"
+                message = "Renta añadido/modificado con éxito"
 
         elif request.action == "delete":
             if not request.id:
@@ -307,6 +491,74 @@ async def manage_Rentas(request: RentaRequest):
     finally:
         mycursor.close()
         mydb.close()
+
+
+
+@app.delete("/rentas/{renta_id}", response_class=PlainTextResponse)
+async def deleteemp(renta_id: int):
+    try:
+        mydb = conectarbd()
+        mycursor = mydb.cursor()
+        mycursor.execute("USE Biblioteca")
+
+
+        mycursor.execute("DELETE FROM rentas WHERE id = %s", (renta_id,))
+
+
+        if mycursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="renta no encontrada")
+
+        mydb.commit()
+        return PlainTextResponse("renta eliminada con éxito", status_code=200)
+
+    except HTTPException as e:
+        return PlainTextResponse(e.detail, status_code=e.status_code)
+
+    except Exception as e:
+        return PlainTextResponse(f"Error: {str(e)}", status_code=500)
+
+
+@app.get("/rentas/{renta_id}", response_class=PlainTextResponse)
+async def get_renta_by_id(renta_id: int):
+    try:
+        mydb = conectarbd()
+        mycursor = mydb.cursor()
+        mycursor.execute("USE Biblioteca")
+
+        mycursor.execute("SELECT id, fechainicio, fechadevolucion, id_cliente, id_libro FROM rentas WHERE id = %s", (renta_id,))
+        renta = mycursor.fetchone()
+
+        if not renta:
+            raise HTTPException(status_code=404, detail="renta no encontrada")
+
+
+        renta_info = (
+            f"id: {renta[0]}, fechainicio: {renta[1]}, fechadevolucion: {renta[2]}, id_cliente: {renta[3]}, id_libro: {renta[4]}"
+        )
+        return PlainTextResponse(renta_info, status_code=200)
+
+    except HTTPException as e:
+        return PlainTextResponse(e.detail, status_code=e.status_code)
+
+    except Exception as e:
+        return PlainTextResponse(f"Error: {str(e)}", status_code=500)
+
+    finally:
+        mycursor.close()
+        mydb.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def init_db():
