@@ -1,13 +1,13 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import  APIRouter, HTTPException
 from pydantic import BaseModel
 from fastapi.responses import PlainTextResponse, JSONResponse
 from Proyecto.BasedeDatos import conectarbd
-
+import mysql.connector
 
 router = APIRouter()
 
 
-class EmpleadoRequest(BaseModel):
+class Empleado(BaseModel):
     action: str
     id: int = None
     apellido_nombre: str = None
@@ -47,37 +47,46 @@ async def get_empleados():
 
 
 @router.post("/empleados")
-async def manage_Empleados(request: EmpleadoRequest):
+async def manage_Empleados(empleado: Empleado):
     try:
         mydb = conectarbd()
         mycursor = mydb.cursor()
         mycursor.execute("USE Biblioteca")
 
-        if request.action == "add_modify":
-            if request.id:
+        if empleado.action == "add_modify":
+            if empleado.id:
                 mycursor.execute(
                     "UPDATE empleados SET apellido_nombre = %s, direccion = %s, telefono = %s, Dias = %s, horarios = %s WHERE id = %s",
-                    (request.apellido_nombre, request.direccion, request.telefono, request.Dias, request.Horarios, request.id)
+                    (empleado.apellido_nombre, empleado.direccion, empleado.telefono, empleado.Dias, empleado.Horarios, empleado.id)
                 )
-                message = "Empleado actualizado con éxito"
+                if mycursor.rowcount == 0:
+                    mycursor.close()
+                    mydb.close()
+                    return PlainTextResponse("Error: ID no encontrado para la modificación", status_code=404)
+                mydb.commit()
+                mycursor.close()
+                mydb.close()
+                return PlainTextResponse("Empleado actualizado con éxito", status_code=200)
+
+
             else:
                 mycursor.execute(
                     "INSERT INTO empleados (apellido_nombre, direccion, telefono, Dias, Horarios) VALUES (%s, %s, %s, %s, %s)",
-                    (request.apellido_nombre, request.direccion, request.telefono, request.Dias, request.Horarios)
+                    (empleado.apellido_nombre, empleado.direccion, empleado.telefono, empleado.Dias, empleado.Horarios)
                 )
-                message = "Empleado añadido con éxito"
+                new_id = mycursor.lastrowid
+                mydb.commit()
+                mycursor.close()
+                mydb.close()
 
-        mydb.commit()
-        return PlainTextResponse(message, status_code=200)
-
+                #retorna la id si es una inserción
+                if empleado.action == "add_modify" and not empleado.id:
+                    return PlainTextResponse(f"Exito, el empledo fue insertado y ahora su ID es: {new_id}", status_code=200)
+                return PlainTextResponse("Exito", status_code=200)
     except Exception as e:
-        print(f"Exception: {e}")
-        return PlainTextResponse(f"Error: {str(e)}", status_code=500)
+        return PlainTextResponse(f"Error{str(e)}", status_code=500)
 
 
-    finally:
-        mycursor.close()
-        mydb.close()
 
 
 @router.delete("/empleados/{empleado_id}", response_class=PlainTextResponse)

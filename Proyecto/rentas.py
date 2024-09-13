@@ -1,8 +1,8 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import  APIRouter, HTTPException
 from pydantic import BaseModel
 from fastapi.responses import PlainTextResponse, JSONResponse
 from Proyecto.BasedeDatos import conectarbd
-
+import mysql.connector
 
 
 router = APIRouter()
@@ -39,7 +39,7 @@ async def get_rentas():
 
 
 #Peticion/formato
-class RentaRequest(BaseModel):
+class Renta(BaseModel):
     action: str
     id: int = None
     fechainicio: str = None
@@ -47,44 +47,48 @@ class RentaRequest(BaseModel):
     id_cliente: int = None
     id_libro: int = None
 
+
 @router.post("/rentas")
-async def manage_Rentas(request: RentaRequest):
+async def manage_Rentas(renta: Renta):
     try:
         mydb = conectarbd()
         mycursor = mydb.cursor()
         mycursor.execute("USE Biblioteca")
 
-        if request.action == "add_modify":
-            if request.id:
+        if renta.action == "add_modify":
+            if renta.id:
                 mycursor.execute(
                     "UPDATE Rentas SET fechainicio = %s, fechadevolucion = %s, id_cliente = %s, id_libro = %s WHERE id = %s",
-                    (request.fechainicio, request.fechadevolucion, request.id_cliente, request.id_libro, request.id)
+                    (renta.fechainicio, renta.fechadevolucion, renta.id_cliente, renta.id_libro, renta.id)
                 )
-                message = "Renta actualizada con éxito"
+                if mycursor.rowcount == 0:
+                    return PlainTextResponse("Error: ID no encontrado para la modificación", status_code=404)
+
+                mydb.commit()
+                return PlainTextResponse("Renta actualizada con éxito", status_code=200)
+
             else:
                 mycursor.execute(
                     "INSERT INTO Rentas (fechainicio, fechadevolucion, id_cliente, id_libro) VALUES (%s, %s, %s, %s)",
-                    (request.fechainicio, request.fechadevolucion, request.id_cliente, request.id_libro)
+                    (renta.fechainicio, renta.fechadevolucion, renta.id_cliente, renta.id_libro)
                 )
-                message = "Renta añadido/modificado con éxito"
+                new_id = mycursor.lastrowid
+                mydb.commit()
+                return PlainTextResponse(f"Éxito, la renta fue insertada y ahora su ID es: {new_id}", status_code=200)
 
-        elif request.action == "delete":
-            if not request.id:
-                return JSONResponse(content={"error": "ID es requerido para borrar"}, status_code=400)
+        return PlainTextResponse("Acción no reconocida", status_code=400)
 
-            mycursor.execute("DELETE FROM Rentas WHERE id = %s", (request.id,))
-            message = "Renta eliminada con éxito"
-
-        mydb.commit()
-        return JSONResponse(content={"message": message}, status_code=200)
+    except mysql.connector.Error as err:
+        return PlainTextResponse(f"Error en la base de datos: {str(err)}", status_code=500)
 
     except Exception as e:
-        print(f"Exception: {e}")
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        return PlainTextResponse(f"Error: {str(e)}", status_code=500)
 
     finally:
-        mycursor.close()
-        mydb.close()
+        if mycursor:
+            mycursor.close()
+        if mydb:
+            mydb.close()
 
 
 

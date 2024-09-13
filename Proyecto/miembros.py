@@ -1,8 +1,8 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from fastapi.responses import PlainTextResponse, JSONResponse
 from Proyecto.BasedeDatos import conectarbd
-
+import mysql.connector
 
 router = APIRouter()
 
@@ -38,7 +38,7 @@ async def get_miembros():
 
 
 #Peticion/formato
-class MiembroRequest(BaseModel):
+class Miembro(BaseModel):
     action: str
     id: int = None
     apellido_nombre: str = None
@@ -46,45 +46,48 @@ class MiembroRequest(BaseModel):
     telefono: str = None
 
 @router.post("/miembros")
-async def manage_Miembros(request: MiembroRequest):
+async def manage_Miembros(miembro: Miembro):
     try:
         mydb = conectarbd()
         mycursor = mydb.cursor()
         mycursor.execute("USE Biblioteca")
 
-        if request.action == "add_modify":
-            if request.id:
+        if miembro.action == "add_modify":
+            if miembro.id:
                 mycursor.execute(
                     "UPDATE Miembros SET apellido_nombre = %s, direccion = %s, telefono = %s WHERE id = %s",
-                    (request.apellido_nombre, request.direccion, request.telefono, request.id)
+                    (miembro.apellido_nombre, miembro.direccion, miembro.telefono, miembro.id)
                 )
+                if mycursor.rowcount == 0:
+                    mycursor.close()
+                    mydb.close()
+                    return PlainTextResponse("Error: ID no encontrado para la modificación", status_code=404)
+                mydb.commit()
+                mycursor.close()
+                mydb.close()
             else:
                 mycursor.execute(
                     "INSERT INTO Miembros (apellido_nombre, direccion, telefono) VALUES (%s, %s, %s)",
-                    (request.apellido_nombre, request.direccion, request.telefono)
+                    (miembro.apellido_nombre, miembro.direccion, miembro.telefono)
                 )
-            message = "Miembro añadido/modificado con éxito"
+                new_id = mycursor.lastrowid
+                mydb.commit()
+                mycursor.close()
+                mydb.close()
+        if miembro.action == "add_modify" and not miembro.id:
+            return PlainTextResponse(f"Éxito, el miembro insertado ahora tiene la siguiente ID: {new_id}", status_code=200)
 
-        elif request.action == "delete":
-            if not request.id:
-                return JSONResponse(content={"error": "ID es requerido para borrar"}, status_code=400)
 
-            mycursor.execute("DELETE FROM Miembros WHERE id = %s", (request.id,))
-            message = "Miembro eliminado con éxito"
-
-        mydb.commit()
-        return JSONResponse(content={"message": message}, status_code=200)
+        return PlainTextResponse("Éxito", status_code=200)
 
     except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        return PlainTextResponse(f"Error: {str(e)}", status_code=500)
 
-    finally:
-        mycursor.close()
-        mydb.close()
+
 
 
 @router.delete("/miembros/{miembro_id}", response_class=PlainTextResponse)
-async def deleteemp(miembro_id: int):
+async def deletemiem(miembro_id: int):
     try:
         mydb = conectarbd()
         mycursor = mydb.cursor()
@@ -99,6 +102,9 @@ async def deleteemp(miembro_id: int):
 
         mydb.commit()
         return PlainTextResponse("Miembro eliminado con éxito", status_code=200)
+    except mysql.connector.Error as err:
+        if err.errno == 1451: #es para hacer referencia al error en mysql cuando no se respeta una foreign key
+            return PlainTextResponse("Error: No se puede eliminar el miembro porque está asociado con registros en otras tablas (por ejemplo, rentas).",status_code=400)#este es el codigo mostrado
 
     except HTTPException as e:
         return PlainTextResponse(e.detail, status_code=e.status_code)

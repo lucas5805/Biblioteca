@@ -1,8 +1,8 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import  APIRouter, HTTPException
 from pydantic import BaseModel
 from fastapi.responses import PlainTextResponse, JSONResponse
 from Proyecto.BasedeDatos import conectarbd
-
+import mysql.connector
 
 router = APIRouter()
 
@@ -54,6 +54,10 @@ async def manage_libros(libro: Libro):
                     "UPDATE libros SET nombre = %s, disponibilidad = %s WHERE id = %s",
                     (libro.nombre, libro.disponibilidad, libro.id)
                 )
+                if mycursor.rowcount == 0:
+                    mycursor.close()
+                    mydb.close()
+                    return PlainTextResponse("Error: ID no encontrado para la modificación", status_code=404)
             else:
                 # Insertar un nuevo libro y capturar la ID generada
                 mycursor.execute(
