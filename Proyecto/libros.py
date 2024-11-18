@@ -1,4 +1,4 @@
-from fastapi import  APIRouter, HTTPException
+from fastapi import  APIRouter, HTTPException, Path
 from pydantic import BaseModel
 from fastapi.responses import PlainTextResponse, JSONResponse
 from Proyecto.BasedeDatos import conectarbd
@@ -106,22 +106,28 @@ async def delete_libro(libro_id: int):
 
 
 #Buscar
-@router.get("/libros/{libro_id}", response_class=PlainTextResponse)
-async def get_libro_by_id(libro_id: int):
+@router.get("/libros/{libro_data}", response_class=PlainTextResponse)
+async def get_libros_by_data(libro_data: str = Path(...)):
     try:
         mydb = conectarbd()
         mycursor = mydb.cursor()
         mycursor.execute("USE Biblioteca")
 
-        # Consulta para obtener el libro por ID
-        mycursor.execute("SELECT id, nombre, disponibilidad FROM libros WHERE id = %s", (libro_id,))
+        #Determina que tipo de dato se ingresa, si es el nombre o la id
+        if libro_data.isdigit():
+            # si es numero es id
+            mycursor.execute("SELECT id, nombre, disponibilidad FROM libros WHERE id = %s", (int(libro_data),))
+        else:
+            # lo demas es nombre
+            mycursor.execute("SELECT id, nombre, disponibilidad FROM libros WHERE nombre = %s", (libro_data,))
+
         libro = mycursor.fetchone()
 
-        # Verifica si se encontró el libro
+        # verifica que el libro exista
         if not libro:
             raise HTTPException(status_code=404, detail="Libro no encontrado")
 
-        # Formatea la información del libro
+        # le daformato a la informacion
         libro_info = f"ID: {libro[0]}, Nombre: {libro[1]}, Disponibilidad: {'Sí' if libro[2] else 'No'}"
         return PlainTextResponse(libro_info, status_code=200)
 
@@ -136,3 +142,4 @@ async def get_libro_by_id(libro_id: int):
             mycursor.close()
         if mydb is not None:
             mydb.close()
+

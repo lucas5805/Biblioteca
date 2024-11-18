@@ -1,4 +1,4 @@
-from fastapi import  APIRouter, HTTPException
+from fastapi import  APIRouter, HTTPException, Path
 from pydantic import BaseModel
 from fastapi.responses import PlainTextResponse, JSONResponse
 from Proyecto.BasedeDatos import conectarbd
@@ -116,23 +116,38 @@ async def deleteemp(renta_id: int):
         return PlainTextResponse(f"Error: {str(e)}", status_code=500)
 
 
-@router.get("/rentas/{renta_id}", response_class=PlainTextResponse)
-async def get_renta_by_id(renta_id: int):
+@router.get("/rentas/{renta_data}", response_class=PlainTextResponse)
+async def get_renta_by_data(renta_data: str = Path(...)):
     try:
         mydb = conectarbd()
         mycursor = mydb.cursor()
         mycursor.execute("USE Biblioteca")
 
-        mycursor.execute("SELECT id, fechainicio, fechadevolucion, id_cliente, id_libro FROM rentas WHERE id = %s", (renta_id,))
-        renta = mycursor.fetchone()
+        # Determina qué tipo de dato se ingresa (ID de la renta o ID del cliente)
+        if renta_data.isdigit():
+            # Si es número, puede ser id de la renta o id_cliente
+            mycursor.execute(
+                "SELECT id, fechainicio, fechadevolucion, id_cliente, id_libro FROM rentas WHERE id = %s OR id_cliente = %s",
+                (int(renta_data), int(renta_data))
+            )
+        else:
+            raise HTTPException(status_code=400, detail="El dato ingresado debe ser un número válido.")
 
-        if not renta:
-            raise HTTPException(status_code=404, detail="renta no encontrada")
+        rentas = mycursor.fetchall()
 
+        # Verifica si se encontraron rentas
+        if not rentas:
+            raise HTTPException(status_code=404, detail="Renta no encontrada")
 
-        renta_info = (
-            f"id: {renta[0]}, fechainicio: {renta[1]}, fechadevolucion: {renta[2]}, id_cliente: {renta[3]}, id_libro: {renta[4]}"
-        )
+        # Formatea la información de las rentas encontradas
+        renta_info = "\n".join([
+            (
+                f"id: {renta[0]}, fechainicio: {renta[1]}, fechadevolucion: {renta[2]}, "
+                f"id_cliente: {renta[3]}, id_libro: {renta[4]}"
+            )
+            for renta in rentas
+        ])
+
         return PlainTextResponse(renta_info, status_code=200)
 
     except HTTPException as e:
@@ -142,5 +157,7 @@ async def get_renta_by_id(renta_id: int):
         return PlainTextResponse(f"Error: {str(e)}", status_code=500)
 
     finally:
-        mycursor.close()
-        mydb.close()
+        if mycursor is not None:
+            mycursor.close()
+        if mydb is not None:
+            mydb.close()

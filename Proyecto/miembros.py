@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Path
 from pydantic import BaseModel
 from fastapi.responses import PlainTextResponse, JSONResponse
 from Proyecto.BasedeDatos import conectarbd
@@ -113,24 +113,32 @@ async def deletemiem(miembro_id: int):
         return PlainTextResponse(f"Error: {str(e)}", status_code=500)
 
 
-@router.get("/miembros/{miembro_id}", response_class=PlainTextResponse)
-async def get_miembro_by_id(miembro_id: int):
+
+
+@router.get("/miembros/{miembro_data}", response_class=PlainTextResponse)
+async def get_miembros_by_data(miembro_data: str = Path(...)):
     try:
         mydb = conectarbd()
         mycursor = mydb.cursor()
         mycursor.execute("USE Biblioteca")
 
-        mycursor.execute("SELECT id, apellido_nombre, direccion, telefono FROM miembros WHERE id = %s", (miembro_id,))
-        miembro = mycursor.fetchone()
+        #Determina que tipo de dato se ingresa, si es el nombre o la id
+        if miembro_data.isdigit():
+            # si es numero es id
+            mycursor.execute("SELECT id, apellido_nombre, direccion, telefono FROM miembros WHERE id = %s", (int(miembro_data),))
+        else:
+            # lo demas es nombre
+            mycursor.execute("SELECT id, apellido_nombre, direccion, telefono FROM miembros WHERE apellido_nombre = %s", (miembro_data,))
 
-        if not miembro:
+        Miembro = mycursor.fetchone()
+
+        # verifica que el miembro exista
+        if not Miembro:
             raise HTTPException(status_code=404, detail="Miembro no encontrado")
 
-
-        miembro_info = (
-            f"id: {miembro[0]}, apellido_Nombre: {miembro[1]}, direccion: {miembro[2]}, telefono: {miembro[3]}"
-        )
-        return PlainTextResponse(miembro_info, status_code=200)
+        # le daformato a la informacion
+        miembro_data = f"ID: {Miembro[0]}, apellido_Nombre: {Miembro[1]}, direccion: {Miembro[2]}, telefono: {Miembro[3]}"
+        return PlainTextResponse(miembro_data, status_code=200)
 
     except HTTPException as e:
         return PlainTextResponse(e.detail, status_code=e.status_code)
@@ -139,5 +147,8 @@ async def get_miembro_by_id(miembro_id: int):
         return PlainTextResponse(f"Error: {str(e)}", status_code=500)
 
     finally:
-        mycursor.close()
-        mydb.close()
+        if mycursor is not None:
+            mycursor.close()
+        if mydb is not None:
+            mydb.close()
+

@@ -1,4 +1,4 @@
-from fastapi import  APIRouter, HTTPException
+from fastapi import  APIRouter, HTTPException, Path
 from pydantic import BaseModel
 from fastapi.responses import PlainTextResponse, JSONResponse
 from Proyecto.BasedeDatos import conectarbd
@@ -113,15 +113,27 @@ async def deleteemp(empleado_id: int):
         return PlainTextResponse(f"Error: {str(e)}", status_code=500)
 
 
-@router.get("/empleados/{empleado_id}", response_class=PlainTextResponse)
-async def get_empleado_by_id(empleado_id: int):
+@router.get("/empleados/{empleado_data}", response_class=PlainTextResponse)
+async def get_empleado_by_data(empleado_data: str = Path(...)):
     try:
         mydb = conectarbd()
         mycursor = mydb.cursor()
         mycursor.execute("USE Biblioteca")
 
-        # Consulta para obtener el empleado por ID
-        mycursor.execute("SELECT id, apellido_nombre, direccion, telefono, Dias, Horarios FROM empleados WHERE id = %s", (empleado_id,))
+        # Determina qué tipo de dato se ingresa (ID o apellido_nombre)
+        if empleado_data.isdigit():
+            # Si es un número, se considera ID
+            mycursor.execute(
+                "SELECT id, apellido_nombre, direccion, telefono, Dias, Horarios FROM empleados WHERE id = %s",
+                (int(empleado_data),)
+            )
+        else:
+            # Si no, se busca por apellido_nombre
+            mycursor.execute(
+                "SELECT id, apellido_nombre, direccion, telefono, Dias, Horarios FROM empleados WHERE apellido_nombre = %s",
+                (empleado_data,)
+            )
+
         empleado = mycursor.fetchone()
 
         # Verifica si se encontró el empleado
@@ -142,5 +154,7 @@ async def get_empleado_by_id(empleado_id: int):
         return PlainTextResponse(f"Error: {str(e)}", status_code=500)
 
     finally:
-        mycursor.close()
-        mydb.close()
+        if mycursor is not None:
+            mycursor.close()
+        if mydb is not None:
+            mydb.close()
