@@ -134,17 +134,21 @@ async def get_empleado_by_data(empleado_data: str = Path(...)):
                 (empleado_data,)
             )
 
-        empleado = mycursor.fetchone()
+        empleados = mycursor.fetchall()
 
         # Verifica si se encontró el empleado
-        if not empleado:
+        if not empleados:
             raise HTTPException(status_code=404, detail="Empleado no encontrado")
 
         # Formatea la información del empleado
-        empleado_info = (
-            f"ID: {empleado[0]}, Apellido_Nombre: {empleado[1]}, Direccion: {empleado[2]}, "
-            f"Telefono: {empleado[3]}, Dias: {empleado[4]}, Horarios: {empleado[5]}"
-        )
+        empleado_info = "\n".join([
+            (
+                f"ID: {empleado[0]}, Apellido_Nombre: {empleado[1]}, Direccion: {empleado[2]}, "
+                f"Telefono: {empleado[3]}, Dias: {empleado[4]}, Horarios: {empleado[5]}"
+            )
+            for empleado in empleados
+        ])
+
         return PlainTextResponse(empleado_info, status_code=200)
 
     except HTTPException as e:

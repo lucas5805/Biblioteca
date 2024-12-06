@@ -130,14 +130,20 @@ async def get_miembros_by_data(miembro_data: str = Path(...)):
             # lo demas es nombre
             mycursor.execute("SELECT id, apellido_nombre, direccion, telefono FROM miembros WHERE apellido_nombre = %s", (miembro_data,))
 
-        Miembro = mycursor.fetchone()
+        Miembros = mycursor.fetchall()
 
         # verifica que el miembro exista
-        if not Miembro:
+        if not Miembros:
             raise HTTPException(status_code=404, detail="Miembro no encontrado")
 
         # le daformato a la informacion
-        miembro_data = f"ID: {Miembro[0]}, apellido_Nombre: {Miembro[1]}, direccion: {Miembro[2]}, telefono: {Miembro[3]}"
+        miembro_data = "\n".join([
+            (
+            f"ID: {Miembro[0]}, apellido_Nombre: {Miembro[1]}, direccion: {Miembro[2]}, telefono: {Miembro[3]}"
+            )
+        for Miembro in Miembros
+        ])
+
         return PlainTextResponse(miembro_data, status_code=200)
 
     except HTTPException as e:

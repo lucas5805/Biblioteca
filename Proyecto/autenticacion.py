@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Body
 from pydantic import BaseModel
 from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.responses import PlainTextResponse
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from Proyecto.BasedeDatos import conectarbd
@@ -74,8 +75,9 @@ async def login_para_token_acceso(datos_formulario: DatosLogin):
         datos={"sub": usuario["usuario"], "rol": usuario["rol"]},
         expira_delta=token_expira_en
     )
+    respuesta_formateada = f"token_acceso: {token_acceso}, tipo_token: bearer"
 
-    return {"token_acceso": token_acceso, "tipo_token": "bearer"}
+    return PlainTextResponse(respuesta_formateada)
 
 # Función para validar el token JWT
 async def get_current_user(token: str = Depends(esquema_oauth2)):
@@ -97,14 +99,28 @@ async def get_current_user(token: str = Depends(esquema_oauth2)):
     return user
 
 # Endpoint protegido que retorna la información del usuario autenticado
-@router.get("/users/me")
-async def read_users_me(current_user: dict = Depends(get_current_user)):
-    return current_user
 
+@router.get("/users/me", response_class=PlainTextResponse)
+async def read_users_me(current_user: dict = Depends(get_current_user)):
+    # Obtener la lista de usuarios desde la base de datos
+    mydb = conectarbd()
+    mycursor = mydb.cursor()
+    mycursor.execute("USE Biblioteca")
+    mycursor.execute("SELECT usuario, rol FROM Usuarios where usuario = %s", (current_user["usuario"],))
+    usuarios = mycursor.fetchall()  # Obtenemos todos los usuarios
+
+    # Formatear la respuesta en el formato deseado
+    usuarios_formateados = "\n".join([f"usuario: {usuario[0]}, rol: {usuario[1]}" for usuario in usuarios])
+
+    # Cerrar la conexión a la base de datos
+    mycursor.close()
+    mydb.close()
+
+    return usuarios_formateados
 async def get_current_user_with_role(token: str = Depends(esquema_oauth2), required_role: str = None):
     credentials_exception = HTTPException(
         status_code=401,
-        detail="No se pueden validar las credenciales",
+        detail="No sos admin",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
@@ -123,9 +139,19 @@ async def get_current_user_with_role(token: str = Depends(esquema_oauth2), requi
     return user
 
 
+
 @router.get("/admin-only")
-async def admin_only(current_user: dict = Depends(lambda: get_current_user_with_role(required_role="admin"))):
-    return {"message": "Esto solo es accesible para administradores."}
+async def admin_only(current_user: dict = Depends(get_current_user_with_role)):
+    if current_user.get("rol") == "admin":  # Verificar si el rol es admin
+        return PlainTextResponse("Hola, admin.")
+    else:
+        raise HTTPException(
+            status_code=403,
+            detail="Esto solo es accesible para administradores"
+        )
+    pass
+
+
 
 @router.post("/change-role")
 async def change_user_role(
@@ -136,8 +162,12 @@ async def change_user_role(
     mydb = conectarbd()
     mycursor = mydb.cursor()
     mycursor.execute("USE Biblioteca")
-    mycursor.execute("UPDATE inicio SET rol = %s WHERE usuario = %s", (new_role, username))
+
+    mycursor.execute("UPDATE usuarios SET rol = %s WHERE usuario = %s", (new_role, username))
+    rol_cambiado =  f"Rol de {username} cambiado a {new_role}"
+
     mydb.commit()
     mycursor.close()
     mydb.close()
-    return {"message": f"Rol de {username} cambiado a {new_role}"}
+
+    return PlainTextResponse(rol_cambiado)
