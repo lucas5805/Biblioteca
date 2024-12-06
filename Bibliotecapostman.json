@@ -241,7 +241,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/libros/55",
+							"raw": "http://localhost:8000/libros/orgullo y prejuicio",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -249,10 +249,10 @@
 							"port": "8000",
 							"path": [
 								"libros",
-								"55"
+								"orgullo y prejuicio"
 							]
 						},
-						"description": "este endpoint es parecido al de DELETE, se envia una solicitud de get con el id dell ibro buscado en la url y con eso deberia mostrarte ese libro.\n\nNota: solo funciona con id, si se introduce un titulo no devolvera nada."
+						"description": "este endpoint es parecido al de DELETE, se envia una solicitud de get con el id o nombre del ibro buscado en la url y con eso deberia mostrarte ese libro."
 					},
 					"response": []
 				}
@@ -307,7 +307,7 @@
 								"miembros"
 							]
 						},
-						"description": "Este endpoint permite al usuario crear un nuevo miembro enviando una solicitud HTTP POST a la URL especificada. La solicitud debe incluir un payload JSON en el cuerpo de la solicitud raw, con las claves \"action\", \"apellido_nombre\", \"direccion\" y \"telefono\" para especificar la acción, el nombre, direccion y telefono del empleado, respectivamente. Tras una ejecución exitosa, la respuesta será en forma de texto plano que documenta la estructura de los datos de respuesta."
+						"description": "Este endpoint permite al usuario crear un nuevo miembro enviando una solicitud HTTP POST a la URL especificada. La solicitud debe incluir un payload JSON en el cuerpo de la solicitud raw, con las claves \"action\", \"apellido_nombre\", \"direccion\" y \"telefono\" para especificar la acción, el nombre, direccion y telefono del miembro, respectivamente. Tras una ejecución exitosa, la respuesta será en forma de texto plano que documenta la estructura de los datos de respuesta."
 					},
 					"response": [
 						{
@@ -431,7 +431,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/miembros/2",
+							"raw": "http://localhost:8000/miembros/rodolfo",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -439,10 +439,10 @@
 							"port": "8000",
 							"path": [
 								"miembros",
-								"2"
+								"rodolfo"
 							]
 						},
-						"description": "este endpoint es parecido al de DELETE, se envia una solicitud de get con el id del meimbro buscado en la url y con eso deberia mostrarte ese libro.\n\nNota: solo funciona con id, si se introduce un nombre u otro tipo de dato no devolvera nada."
+						"description": "este endpoint es parecido al de DELETE, se envia una solicitud de get con el id del meimbro buscado en la url y con eso deberia mostrarte ese miembro.\n\nNota: Podes buscar introduciendo tanto el id como el nombre. En caso de que dos o mas miembros tengan el mismo nombre se devolveran todos los miembros que coincidan."
 					},
 					"response": []
 				}
@@ -641,14 +641,14 @@
 								"10"
 							]
 						},
-						"description": "este endpoint es parecido al de DELETE, se envia una solicitud de get con el id de la renta buscada en la url y con eso deberia mostrarte ese libro.\n\nNota: solo funciona con id, si se introduce una fecha u otro tipo de dato no devolvera nada."
+						"description": "este endpoint es parecido al de DELETE, se envia una solicitud de get con el id de la renta buscada en la url y con eso deberia mostrarte esa renta."
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "Empleados(!)",
+			"name": "Empleados",
 			"item": [
 				{
 					"name": "Listar empleados",
@@ -832,7 +832,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/empleados/14",
+							"raw": "http://localhost:8000/empleados/nombre",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -840,10 +840,448 @@
 							"port": "8000",
 							"path": [
 								"empleados",
-								"14"
+								"nombre"
 							]
 						},
-						"description": "este endpoint es parecido al de DELETE, se envia una solicitud de get con el id del empleado buscado en la url y con eso deberia mostrarte ese libro.\n\nNota: solo funciona con id, si se introduce un nombre no devolvera nada."
+						"description": "este endpoint es parecido al de DELETE, se envia una solicitud de get con el id del empleado buscado en la url y con eso deberia mostrarte ese empleado.\n\nNota: solo funciona con id, si se introduce un nombre no devolvera nada."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Autenticacion",
+			"item": [
+				{
+					"name": "Obtener Token",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"usuario\": \"pe\",\r\n  \"contraseña\": \"123\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/token",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"token"
+							]
+						},
+						"description": "Este endpoint envía una solicitud HTTP POST para obtener un token al servidor. La respuesta de esta solicitud sera presentada como texto plano para proporcionar una estructura clara de los datos que devuelve la API."
+					},
+					"response": [
+						{
+							"name": "ejemplo funcional",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"usuario\": \"lucas\",\r\n  \"contraseña\": \"5805\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://127.0.0.1:8000/token",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"token"
+									]
+								}
+							},
+							"_postman_previewlanguage": null,
+							"header": null,
+							"cookie": [],
+							"body": null
+						}
+					]
+				},
+				{
+					"name": "verificar token",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsdWNhcyIsInJvbCI6bnVsbCwiZXhwIjoxNzMzNDI0OTMwfQ.U1rL_iEsiKM4mW1aM5Sujv30aOSg8CVA9Gpoafsa-2Y",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/users/me",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"users",
+								"me"
+							]
+						},
+						"description": "Se envia el tipo de token(por defecto bearer) y el token. Esto hace que la api devuelva una respuesta en texto plano que dependiendo de ser valido el token o no se devolveran datos del usuario que incluyan su nombre de usuario y su rol."
+					},
+					"response": [
+						{
+							"name": "token expirado",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsdWNhcyIsInJvbCI6bnVsbCwiZXhwIjoxNzMzNDI0OTMwfQ.U1rL_iEsiKM4mW1aM5Sujv30aOSg8CVA9Gpoafsa-2Y",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://127.0.0.1:8000/users/me",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"users",
+										"me"
+									],
+									"query": [
+										{
+											"key": "Authorization",
+											"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsdWNhcyIsInJvbCI6ImFkbWluIiwiZXhwIjoxNzMzNDM3MDIzfQ.chL36qyL9g2siiSsTnN-ub8ASTsadIoows7PFY7_u20",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"_postman_previewlanguage": null,
+							"header": null,
+							"cookie": [],
+							"body": null
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Login",
+			"item": [
+				{
+					"name": "Mostrar usuarios",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8000/api/inicio",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"inicio"
+							]
+						},
+						"description": "Este endpoint envía una solicitud HTTP GET para recuperar una lista de usuarios del servidor. La respuesta de esta solicitud sera presentada como texto plano para proporcionar una estructura clara de los datos que devuelve la API."
+					},
+					"response": []
+				},
+				{
+					"name": "Agregar usuario",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"action\": \"add_modify\", //accion a realizar, no modificar\r\n  \"nombre\": \"Pepe\", //string\r\n  \"usuario\": \"Pe\", //string\r\n  \"contraseña\":\"123\", //string\r\n  \"rol\":\"usuario\" //string \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8000/inicio",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"inicio"
+							]
+						},
+						"description": "Este endpoint permite al usuario crear un nuevo usuario enviando una solicitud HTTP POST a la URL especificada. La solicitud debe incluir un payload JSON en el cuerpo de la solicitud raw, con las claves \"action\", \"nombre\", \"usuario\", \"contraseña\", y \"rol\" y la contraseña se hasheara automaticamente. Tras una ejecución exitosa, la respuesta será en forma de texto plano que documenta la estructura de los datos de respuesta."
+					},
+					"response": [
+						{
+							"name": "Agregar usuario",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"action\": \"add_modify\", //accion a realizar, no modificar\r\n  \"nombre\": \"Pepe\", //string\r\n  \"usuario\": \"Pe\", //string\r\n  \"contraseña\":\"123\" //string\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8000/inicio",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"inicio"
+									]
+								}
+							},
+							"_postman_previewlanguage": null,
+							"header": null,
+							"cookie": [],
+							"body": null
+						}
+					]
+				},
+				{
+					"name": "Borrar Usuario",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8000/inicio/8",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"inicio",
+								"8"
+							]
+						},
+						"description": "Este endpoint permite al usuario eliminar un usuario enviando una solicitud HTTP POST a la URL especificada. La solicitud debe incluir un payload JSON en el cuerpo de la solicitud raw, con las claves \"action\" e \"id\". La clave \"action\" debe establecerse en \"delete\", y la clave \"id\" debe contener el identificador del usuario que se desea eliminar. Tras una ejecución exitosa, la respuesta será en forma de texto plano que documenta la estructura de los datos de respuesta."
+					},
+					"response": []
+				},
+				{
+					"name": "Buscar Usuario",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8000/inicio/9",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"inicio",
+								"9"
+							]
+						},
+						"description": "este endpoint es parecido al de DELETE, se envia una solicitud de get con el id o el nombre del usuario buscado en la url y con eso deberia mostrarte ese usuario.\n\nNota: Podes buscar introduciendo tanto el id como el nombre. En caso de que dos o mas usuarios tengan el mismo nombre se devolveran todos los usuarios que coincidan."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Autorizacion",
+			"item": [
+				{
+					"name": "Informacion de usuario",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsdWNhcyIsInJvbCI6bnVsbCwiZXhwIjoxNzMzNDI0OTMwfQ.U1rL_iEsiKM4mW1aM5Sujv30aOSg8CVA9Gpoafsa-2Y",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8000/users/me",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"users",
+								"me"
+							]
+						},
+						"description": "introduciendo el token de un usuario en la pestaña de Authorization(autorizacion) se devolvera una respuesta de texto plano la cual contendra tanto el nombre de usuario como su rol."
+					},
+					"response": []
+				},
+				{
+					"name": "Cambiar Rol",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJKdWFuaXRvIiwicm9sIjpudWxsLCJleHAiOjE3MjgzODcwMTN9.sV6LzVDBHZAuh5K3PQQrclc4xg8UrhzeTTyN4M8tNOI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"lucas\",\r\n    \"new_role\": \"admin\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8000/change-role",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"change-role"
+							]
+						},
+						"description": "Este endpoint permite modificar el rol de un usuario enviando una solicitud HTTP POST a la URL especificada. La solicitud debe incluir un payload JSON en el cuerpo de la solicitud raw, con las claves \"username\", \"new_role\". Tras una ejecución exitosa, la respuesta será en forma de texto plano que indicara si se pudo o no cambiar el rol."
+					},
+					"response": [
+						{
+							"name": "Cambiar Rol",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\": \"lucas\",\r\n    \"new_role\": \"admin\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8000/change-role",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"change-role"
+									]
+								}
+							},
+							"_postman_previewlanguage": null,
+							"header": null,
+							"cookie": [],
+							"body": null
+						}
+					]
+				},
+				{
+					"name": "Acceso solo de administrador",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsdWNhcyIsInJvbCI6bnVsbCwiZXhwIjoxNzMzNDI0OTMwfQ.U1rL_iEsiKM4mW1aM5Sujv30aOSg8CVA9Gpoafsa-2Y",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8000/admin-only",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"admin-only"
+							]
+						},
+						"description": "introduciendo el token de un usuario en la pestaña de Authorization(autorizacion) se dara un mensaje en caso de ser este un administrador, y se dara una respuesta negativa en caso de no serlo."
 					},
 					"response": []
 				}
